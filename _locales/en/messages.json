@@ -1,0 +1,35 @@
+{
+  "extensionName": {
+    "message": "Twitch Auto Show More"
+  },
+  "extensionDescription": {
+    "message": "Automatically clicks the \"Show More\" button on Twitch sidebar when a page loads."
+  },
+  "enableAutoClick": {
+    "message": "Enable auto-click"
+  },
+  "clickCount": {
+    "message": "Click count"
+  },
+  "clickCountHint": {
+    "message": "Number of times to click \"Show More\" on page load (1–10)"
+  },
+  "btnDecrement": {
+    "message": "Decrease"
+  },
+  "btnIncrement": {
+    "message": "Increase"
+  },
+  "runNow": {
+    "message": "Run Now"
+  },
+  "statusSuccess": {
+    "message": "Done"
+  },
+  "statusErrorNotTwitch": {
+    "message": "Please run this on a Twitch tab"
+  },
+  "statusErrorFailed": {
+    "message": "Failed to execute"
+  }
+}
