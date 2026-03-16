@@ -1,0 +1,4 @@
+# Exclude files from git archive (used for Chrome Web Store ZIP generation)
+docs/ export-ignore
+.gitattributes export-ignore
+.gitignore export-ignore

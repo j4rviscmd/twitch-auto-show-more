@@ -1,0 +1,82 @@
+name: Publish to Chrome Web Store
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    name: Build and publish extension
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get version from manifest
+        id: version
+        run: |
+          VERSION=$(jq -r '.version' manifest.json)
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Extension version: ${VERSION}"
+
+      - name: Build ZIP (excluding docs and dev files)
+        run: |
+          git archive HEAD \
+            --format=zip \
+            -o extension.zip
+          echo "ZIP created: $(ls -lh extension.zip)"
+          echo "ZIP contents:"
+          unzip -l extension.zip
+
+      - name: Get access token, upload and publish
+        env:
+          CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+          CWS_PUBLISHER_ID: ${{ secrets.CWS_PUBLISHER_ID }}
+          CWS_EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
+        run: |
+          # Get access token
+          RESPONSE=$(curl -s -X POST "https://oauth2.googleapis.com/token" \
+            -d "client_id=${CWS_CLIENT_ID}" \
+            -d "client_secret=${CWS_CLIENT_SECRET}" \
+            -d "refresh_token=${CWS_REFRESH_TOKEN}" \
+            -d "grant_type=refresh_token")
+          ACCESS_TOKEN=$(echo "$RESPONSE" | jq -r '.access_token')
+          if [ "$ACCESS_TOKEN" = "null" ] || [ -z "$ACCESS_TOKEN" ]; then
+            echo "Failed to get access token"
+            exit 1
+          fi
+          echo "Access token obtained successfully"
+
+          # Upload ZIP
+          UPLOAD_RESPONSE=$(curl -s \
+            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            -X POST \
+            -T extension.zip \
+            "https://chromewebstore.googleapis.com/upload/v2/publishers/${CWS_PUBLISHER_ID}/items/${CWS_EXTENSION_ID}:upload")
+          echo "Upload response:"
+          echo "$UPLOAD_RESPONSE" | jq .
+          UPLOAD_STATE=$(echo "$UPLOAD_RESPONSE" | jq -r '.uploadState // empty')
+          if [ "$UPLOAD_STATE" != "SUCCESS" ]; then
+            echo "Upload failed with state: ${UPLOAD_STATE}"
+            exit 1
+          fi
+          echo "Upload successful"
+
+          # Publish
+          PUBLISH_RESPONSE=$(curl -s \
+            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            -X POST \
+            "https://chromewebstore.googleapis.com/v2/publishers/${CWS_PUBLISHER_ID}/items/${CWS_EXTENSION_ID}:publish")
+          echo "Publish response:"
+          echo "$PUBLISH_RESPONSE" | jq .
+          echo "Publish request submitted (v${{ steps.version.outputs.version }})"
