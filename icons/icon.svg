@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <rect width="128" height="128" rx="24" fill="#9147ff"/>
+  <!-- Twitch風のシンプルなロゴ：下向き矢印 3本 -->
+  <g fill="#ffffff">
+    <!-- 矢印1 -->
+    <polygon points="64,42 82,60 46,60" />
+    <!-- 矢印2 -->
+    <polygon points="64,60 82,78 46,78" />
+    <!-- 矢印3 -->
+    <polygon points="64,78 82,96 46,96" />
+  </g>
+</svg>

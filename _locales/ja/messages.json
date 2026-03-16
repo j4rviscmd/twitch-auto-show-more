@@ -1,0 +1,35 @@
+{
+  "extensionName": {
+    "message": "Twitch Auto Show More"
+  },
+  "extensionDescription": {
+    "message": "Twitchのサイドバーで「さらに表示」ボタンをページ読み込み時に自動クリックします。"
+  },
+  "enableAutoClick": {
+    "message": "自動クリックを有効にする"
+  },
+  "clickCount": {
+    "message": "クリック回数"
+  },
+  "clickCountHint": {
+    "message": "ページ読み込み時に「さらに表示」を押す回数（1〜10）"
+  },
+  "btnDecrement": {
+    "message": "減らす"
+  },
+  "btnIncrement": {
+    "message": "増やす"
+  },
+  "runNow": {
+    "message": "今すぐ実行"
+  },
+  "statusSuccess": {
+    "message": "実行しました"
+  },
+  "statusErrorNotTwitch": {
+    "message": "Twitch のタブで実行してください"
+  },
+  "statusErrorFailed": {
+    "message": "実行に失敗しました"
+  }
+}

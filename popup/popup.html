@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Twitch Auto Show More</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header class="header">
+        <img src="../icons/icon48.png" alt="icon" class="header-icon" />
+        <h1 class="header-title">Twitch Auto Show More</h1>
+      </header>
+
+      <main class="main">
+        <!-- ON/OFF トグル -->
+        <section class="section">
+          <div class="row">
+            <label class="label" for="toggle-enabled" data-i18n="enableAutoClick">自動クリックを有効にする</label>
+            <label class="toggle" for="toggle-enabled">
+              <input type="checkbox" id="toggle-enabled" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </section>
+
+        <!-- クリック回数設定 -->
+        <section class="section">
+          <div class="row">
+            <label class="label" for="input-click-count" data-i18n="clickCount">クリック回数</label>
+            <div class="count-control">
+              <button class="count-btn" id="btn-decrement" data-i18n-aria="btnDecrement" aria-label="Decrease">−</button>
+              <input
+                type="number"
+                id="input-click-count"
+                min="1"
+                max="10"
+                value="1"
+                class="count-input"
+              />
+              <button class="count-btn" id="btn-increment" data-i18n-aria="btnIncrement" aria-label="Increase">＋</button>
+            </div>
+          </div>
+          <p class="hint" data-i18n="clickCountHint">ページ読み込み時に「さらに表示」を押す回数（1〜10）</p>
+        </section>
+
+        <!-- 手動実行ボタン -->
+        <section class="section">
+          <button class="run-btn" id="btn-run-now" data-i18n="runNow">今すぐ実行</button>
+          <p class="status-message" id="status-message"></p>
+        </section>
+      </main>
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>
