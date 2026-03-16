@@ -52,37 +52,23 @@ async function autoShowMore() {
 
   if (!settings.enabled) return;
 
-  // show-more-button か side-nav-arrow のどちらかが出現するまで待つ
-  const combinedSelector = `${SHOW_MORE_SELECTOR}, ${SIDEBAR_TOGGLE_SELECTOR}`;
-  const found = await waitForElement(combinedSelector, SIDEBAR_READY_WAIT_MS);
+  // まず show-more-button の出現を待つ（最初から開いている場合）
+  let sidebarInitiallyOpen = await waitForElement(SHOW_MORE_SELECTOR, 2000);
 
-  if (!found) return; // タイムアウト
-
-  // サイドバーのDOMが完全に描画されるまで待機してから状態を判定
-  await sleep(500);
-  const initialSidebarState = getInitialSidebarState();
-
-  // 最初から開いている場合: show more のみ実行して終了
-  if (initialSidebarState === 'open') {
+  if (sidebarInitiallyOpen) {
+    // 最初から開いている → show more のみ実行
     await clickShowMoreButtons(settings.clickCount);
     return;
   }
 
-  // 状態が不明な場合: show more のみ実行して終了（安全策）
-  if (initialSidebarState === 'unknown') {
+  // show-more-button が出現しなかった → サイドバーは閉じていると判断
+  // 展開して show more 実行後に閉じる
+  await tryExpandSidebar();
+  const foundAfterExpand = await waitForElement(SHOW_MORE_SELECTOR, AFTER_EXPAND_WAIT_MS);
+  if (foundAfterExpand) {
     await clickShowMoreButtons(settings.clickCount);
-    return;
-  }
-
-  // 最初から閉じていた場合: 展開 → show more → 折りたたむ
-  if (initialSidebarState === 'closed') {
-    await tryExpandSidebar();
-    const foundAfterExpand = await waitForElement(SHOW_MORE_SELECTOR, AFTER_EXPAND_WAIT_MS);
-    if (foundAfterExpand) {
-      await clickShowMoreButtons(settings.clickCount);
-      // show more 完了後にサイドバーを元通り閉じる
-      await tryCollapseSidebar();
-    }
+    // show more 完了後にサイドバーを元通り閉じる
+    await tryCollapseSidebar();
   }
 }
 
