@@ -4,7 +4,7 @@
  *
  * Twitch は SPA のため、content script 実行時点でサイドバーがまだ描画されていない。
  * MutationObserver でボタンの出現を監視し、出現後に自動クリックを実行する。
- * サイドバーが閉じている場合は自動で開いてから実行する。
+ * サイドバーの最初の状態を記憶し、show more 実行後に元の状態に戻す。
  */
 
 const SHOW_MORE_SELECTOR = '[data-a-target="side-nav-show-more-button"]';
@@ -16,6 +16,30 @@ const CLICK_INTERVAL_MS = 500;
 const SIDEBAR_READY_WAIT_MS = 10000;
 /** サイドバー展開後の再待機タイムアウト（ms） */
 const AFTER_EXPAND_WAIT_MS = 5000;
+
+/**
+ * サイドバーの最初の状態を判定する
+ * @returns {'open' | 'closed' | 'unknown'}
+ */
+function getInitialSidebarState() {
+  // 最初に存在する要素で状態を判定する
+  if (document.querySelector(SHOW_MORE_SELECTOR)) {
+    return 'open'; // show-more-buttonが存在 → 最初から開いている
+  }
+
+  if (document.querySelector(SIDEBAR_TOGGLE_SELECTOR)) {
+    // この要素が存在していても、実際にはサイドバーが開いている可能性がある
+    // 展開ボタンが表示されるのは「閉じている」場合のみ
+    // TwitchのUIでは、サイドバーが開いている場合は閉じるボタンが表示される
+    const collapseBtn = document.querySelector('[data-a-target="side-nav-close-tray-button"]');
+    if (collapseBtn) {
+      return 'open'; // 閉じるボタンが存在 → 最初から開いている
+    }
+    return 'closed';
+  }
+
+  return 'unknown';
+}
 
 /**
  * ストレージから設定を取得して自動クリックを実行する
@@ -34,19 +58,30 @@ async function autoShowMore() {
 
   if (!found) return; // タイムアウト
 
-  if (document.querySelector(SHOW_MORE_SELECTOR)) {
-    // show-more-button が出現 → サイドバーは開いている
+  // 最初のサイドバー状態を記憶
+  const initialSidebarState = getInitialSidebarState();
+
+  // 最初から開いている場合: show more のみ実行して終了
+  if (initialSidebarState === 'open') {
     await clickShowMoreButtons(settings.clickCount);
     return;
   }
 
-  // side-nav-arrow が出現 → サイドバーが折りたたまれている → 展開する
-  await tryExpandSidebar();
-  const foundAfterExpand = await waitForElement(SHOW_MORE_SELECTOR, AFTER_EXPAND_WAIT_MS);
-  if (foundAfterExpand) {
+  // 状態が不明な場合: show more のみ実行して終了（安全策）
+  if (initialSidebarState === 'unknown') {
     await clickShowMoreButtons(settings.clickCount);
-    // show more 完了後にサイドバーを元通り閉じる
-    await tryCollapseSidebar();
+    return;
+  }
+
+  // 最初から閉じていた場合: 展開 → show more → 折りたたむ
+  if (initialSidebarState === 'closed') {
+    await tryExpandSidebar();
+    const foundAfterExpand = await waitForElement(SHOW_MORE_SELECTOR, AFTER_EXPAND_WAIT_MS);
+    if (foundAfterExpand) {
+      await clickShowMoreButtons(settings.clickCount);
+      // show more 完了後にサイドバーを元通り閉じる
+      await tryCollapseSidebar();
+    }
   }
 }
 
