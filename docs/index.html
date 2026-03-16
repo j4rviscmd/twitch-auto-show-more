@@ -3,29 +3,574 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Twitch Auto Show More</title>
+  <title>Twitch Auto Show More - Chrome Extension</title>
+  <meta name="description" content="Automatically click 'Show More' button on Twitch sidebar. A Chrome extension that enhances your Twitch browsing experience." />
   <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      max-width: 720px;
-      margin: 60px auto;
-      padding: 0 24px;
-      color: #333;
-      line-height: 1.7;
+    :root {
+      --twitch-purple: #9146FF;
+      --twitch-purple-light: #B9A0E8;
+      --twitch-purple-dark: #772CE8;
+      --twitch-black: #0E0E10;
+      --twitch-gray: #18181B;
+      --twitch-gray-light: #2F2F35;
+      --text-primary: #EFEFF1;
+      --text-secondary: #ADADB8;
     }
-    h1 { font-size: 1.8rem; }
-    a { color: #6441a5; }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif;
+      background: linear-gradient(135deg, var(--twitch-black) 0%, var(--twitch-gray) 100%);
+      color: var(--text-primary);
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    /* Hero */
+    .hero {
+      padding: 100px 0 80px;
+      text-align: center;
+      background: linear-gradient(180deg, rgba(145, 70, 255, 0.1) 0%, transparent 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(145, 70, 255, 0.1) 0%, transparent 50%);
+      animation: pulse 8s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.5; }
+      50% { transform: scale(1.1); opacity: 0.8; }
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--twitch-purple), var(--twitch-purple-dark));
+      color: white;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 15px rgba(145, 70, 255, 0.4);
+    }
+
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: 800;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, var(--text-primary) 0%, var(--twitch-purple-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-tagline {
+      font-size: 1.3rem;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto 40px;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 32px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 1rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--twitch-purple), var(--twitch-purple-dark));
+      color: white;
+      box-shadow: 0 4px 15px rgba(145, 70, 255, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(145, 70, 255, 0.5);
+    }
+
+    .btn-secondary {
+      background: var(--twitch-gray-light);
+      color: var(--text-primary);
+      border: 1px solid var(--twitch-purple);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(145, 70, 255, 0.1);
+      border-color: var(--twitch-purple-light);
+    }
+
+    /* Section Styles */
+    .features, .screenshots {
+      padding: 80px 0;
+      background: var(--twitch-gray);
+    }
+
+    .installation {
+      padding: 80px 0;
+      background: var(--twitch-black);
+    }
+
+    .faq {
+      padding: 80px 0;
+      background: var(--twitch-black);
+    }
+
+    .section-title {
+      text-align: center;
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .section-subtitle {
+      text-align: center;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto 60px;
+      font-size: 1.1rem;
+    }
+
+    /* Features */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 32px;
+    }
+
+    .feature-card {
+      background: var(--twitch-gray-light);
+      padding: 32px;
+      border-radius: 16px;
+      border: 1px solid rgba(145, 70, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--twitch-purple);
+      box-shadow: 0 8px 30px rgba(145, 70, 255, 0.2);
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--twitch-purple), var(--twitch-purple-dark));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 16px;
+    }
+
+    .feature-card h3 {
+      font-size: 1.2rem;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .feature-card p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    /* Installation */
+    .steps {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .step {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 32px;
+      padding: 24px;
+      background: var(--twitch-gray-light);
+      border-radius: 12px;
+      border-left: 4px solid var(--twitch-purple);
+    }
+
+    .step-number {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--twitch-purple), var(--twitch-purple-dark));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .step-content h3 {
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .step-content p {
+      color: var(--text-secondary);
+    }
+
+    /* Screenshots */
+    .screenshots-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 32px;
+      margin-top: 40px;
+    }
+
+    .screenshot-item {
+      background: var(--twitch-gray-light);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(145, 70, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .screenshot-item:hover {
+      border-color: var(--twitch-purple);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 30px rgba(145, 70, 255, 0.2);
+    }
+
+    .screenshot-item img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .screenshot-caption {
+      padding: 12px 16px;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .screenshot-placeholder {
+      background: var(--twitch-gray-light);
+      border: 2px dashed rgba(145, 70, 255, 0.3);
+      border-radius: 16px;
+      aspect-ratio: 16 / 9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      transition: all 0.3s ease;
+    }
+
+    .screenshot-placeholder:hover {
+      border-color: var(--twitch-purple);
+      background: rgba(145, 70, 255, 0.05);
+    }
+
+    .screenshot-placeholder span {
+      font-size: 3rem;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    /* FAQ */
+    .faq-list {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .faq-item {
+      margin-bottom: 16px;
+      border: 1px solid var(--twitch-gray-light);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .faq-item:hover {
+      border-color: var(--twitch-purple);
+    }
+
+    .faq-question {
+      padding: 20px 24px;
+      background: var(--twitch-gray-light);
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+
+    .faq-question::after {
+      content: '+';
+      font-size: 1.5rem;
+      color: var(--twitch-purple);
+      transition: transform 0.3s ease;
+    }
+
+    .faq-item.active .faq-question::after {
+      transform: rotate(45deg);
+    }
+
+    .faq-answer {
+      padding: 0 24px;
+      max-height: 0;
+      overflow: hidden;
+      background: var(--twitch-gray);
+      transition: all 0.3s ease;
+      color: var(--text-secondary);
+    }
+
+    .faq-item.active .faq-answer {
+      padding: 20px 24px;
+      max-height: 500px;
+    }
+
+    /* Footer */
+    .footer {
+      padding: 40px 0;
+      background: var(--twitch-gray);
+      border-top: 1px solid var(--twitch-gray-light);
+      text-align: center;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .footer-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    .footer-links a:hover {
+      color: var(--twitch-purple);
+    }
+
+    .footer-copyright {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 2rem;
+      }
+
+      .hero-tagline {
+        font-size: 1.1rem;
+      }
+
+      .features-grid,
+      .screenshots-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .screenshot-item {
+        max-width: 400px;
+        margin: 0 auto;
+      }
+
+      .step {
+        flex-direction: column;
+        gap: 16px;
+      }
+    }
   </style>
 </head>
 <body>
-  <h1>Twitch Auto Show More</h1>
-  <p>
-    A Chrome extension that automatically clicks the "Show More" button on
-    the Twitch sidebar when a page loads.
-  </p>
-  <ul>
-    <li><a href="https://github.com/j4rviscmd/twitch-auto-show-more">GitHub Repository</a></li>
-    <li><a href="privacy-policy.html">Privacy Policy</a></li>
-  </ul>
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container hero-content">
+      <div class="hero-badge">🚀 v1.0.0</div>
+      <h1>Twitch Auto Show More</h1>
+      <p class="hero-tagline">
+        Automatically expand the "Show More" button on Twitch sidebar and enjoy a seamless browsing experience.
+      </p>
+      <div class="cta-buttons">
+        <a href="https://github.com/j4rviscmd/twitch-auto-show-more" target="_blank" rel="noopener" class="btn btn-primary">
+          <span>⬇️</span> Install Extension
+        </a>
+        <a href="https://github.com/j4rviscmd/twitch-auto-show-more" target="_blank" rel="noopener" class="btn btn-secondary">
+          <span>🔧</span> View Source
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features" id="features">
+    <div class="container">
+      <h2 class="section-title">✨ Features</h2>
+      <p class="section-subtitle">Enhance your Twitch experience with these powerful features</p>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🖱️</div>
+          <h3>Auto Click</h3>
+          <p>Automatically clicks "Show More" button when page loads, saving you time and effort.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <h3>Fast & Lightweight</h3>
+          <p>Built with vanilla JavaScript. No bloat, no dependencies, just pure performance.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <h3>Privacy Focused</h3>
+          <p>No data collection, no tracking. Your privacy is our top priority.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚙️</div>
+          <h3>Customizable</h3>
+          <p>Easy toggle on/off functionality. Control when the extension should run.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Installation Section -->
+  <section class="installation" id="installation">
+    <div class="container">
+      <h2 class="section-title">📥 Installation</h2>
+      <p class="section-subtitle">Get started in just 3 simple steps</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h3>Download the Extension</h3>
+            <p>Visit the <a href="https://github.com/j4rviscmd/twitch-auto-show-more" target="_blank" style="color: var(--twitch-purple-light);">GitHub repository</a> and download the latest release.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h3>Open Chrome Extensions</h3>
+            <p>Navigate to <code>chrome://extensions/</code> in your Chrome browser and enable "Developer mode".</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h3>Load the Extension</h3>
+            <p>Click "Load unpacked" and select the downloaded extension folder. That's it!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Screenshots Section -->
+  <section class="screenshots" id="screenshots">
+    <div class="container">
+      <h2 class="section-title">📸 Screenshots</h2>
+      <p class="section-subtitle">See the extension in action</p>
+      <div class="screenshots-grid">
+        <div class="screenshot-item">
+          <img src="screenshots/popup.png" alt="Extension Popup" />
+          <div class="screenshot-caption">Extension Popup</div>
+        </div>
+        <div class="screenshot-item">
+          <img src="screenshots/sidebar.png" alt="Twitch Sidebar" />
+          <div class="screenshot-caption">Twitch Sidebar</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="faq" id="faq">
+    <div class="container">
+      <h2 class="section-title">❓ FAQ</h2>
+      <p class="section-subtitle">Frequently asked questions</p>
+      <div class="faq-list">
+        <div class="faq-item">
+          <div class="faq-question">Does this extension collect any data?</div>
+          <div class="faq-answer">
+            <p>No, this extension does not collect, store, or transmit any personal data. All data is stored locally on your device using Chrome's storage API.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">Is this extension safe to use?</div>
+          <div class="faq-answer">
+            <p>Yes! The extension is open-source, so you can review the code anytime. It only operates on Twitch pages and doesn't access any other websites.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">How do I disable the extension temporarily?</div>
+          <div class="faq-answer">
+            <p>Click the extension icon in your browser toolbar and toggle the switch. You can also disable it from chrome://extensions/ page.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">Will this work with other streaming platforms?</div>
+          <div class="faq-answer">
+            <p>Currently, this extension is designed specifically for Twitch. Support for other platforms may be added in the future based on user demand.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-links">
+        <a href="https://github.com/j4rviscmd/twitch-auto-show-more" target="_blank" rel="noopener">GitHub Repository</a>
+        <a href="privacy-policy.html">Privacy Policy</a>
+        <a href="https://github.com/j4rviscmd/twitch-auto-show-more/issues" target="_blank" rel="noopener">Report Issue</a>
+      </div>
+      <p class="footer-copyright">© 2026 Twitch Auto Show More. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="faq.js"></script>
 </body>
 </html>
