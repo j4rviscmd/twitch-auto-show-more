@@ -1,0 +1,78 @@
+# CI workflow for PRs to main branch
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate extension
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check required files exist
+        run: |
+          MISSING=0
+          for f in manifest.json content.js popup/popup.html popup/popup.css popup/popup.js; do
+            if [ ! -f "$f" ]; then
+              echo "Missing required file: $f"
+              MISSING=1
+            fi
+          done
+          for d in icons _locales; do
+            if [ ! -d "$d" ]; then
+              echo "Missing required directory: $d"
+              MISSING=1
+            fi
+          done
+          if [ $MISSING -ne 0 ]; then
+            exit 1
+          fi
+          echo "All required files and directories present"
+
+      - name: Validate manifest.json
+        run: |
+          jq empty manifest.json
+          echo "manifest.json is valid JSON"
+
+          VERSION=$(jq -r '.version' manifest.json)
+          MV=$(jq -r '.manifest_version' manifest.json)
+          if [ "$MV" != "3" ]; then
+            echo "Expected manifest_version 3, got: $MV"
+            exit 1
+          fi
+          echo "manifest_version: $MV, version: $VERSION"
+
+      - name: Build ZIP (verify git archive works)
+        run: |
+          git archive HEAD --format=zip -o extension.zip
+          SIZE=$(du -k extension.zip | cut -f1)
+          echo "ZIP created: ${SIZE}KB"
+          echo "ZIP contents:"
+          unzip -l extension.zip
+          if [ "$SIZE" -lt 1 ]; then
+            echo "ZIP is empty"
+            exit 1
+          fi
+
+  ci-status:
+    name: CI status check
+    runs-on: ubuntu-latest
+    needs: [validate]
+    if: always()
+    steps:
+      - name: Some checks failed
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        run: exit 1
+      - name: All checks passed
+        run: exit 0
