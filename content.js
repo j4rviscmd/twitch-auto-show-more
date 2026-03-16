@@ -58,7 +58,8 @@ async function autoShowMore() {
 
   if (!found) return; // タイムアウト
 
-  // 最初のサイドバー状態を記憶
+  // サイドバーのDOMが完全に描画されるまで待機してから状態を判定
+  await sleep(500);
   const initialSidebarState = getInitialSidebarState();
 
   // 最初から開いている場合: show more のみ実行して終了
